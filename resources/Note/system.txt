@@ -1,0 +1,148 @@
+What are the functions of the users
+
+1. focals
+- Manage list of certain benefeciary (whether senior, women, and pwd)
+- pass the list to the barangay personnel
+- Make request for benefeciary transitioning
+- generate report (list of benefeciaries per focal)
+
+2. barangay personnel
+- create focal peprsonnel
+- check the list of benefeciaries
+- view programs for the barangay made by the staff (ex. food distribution)
+- monitor barangay benefeciaries
+- check focal request
+- generate report (barangay benefeciaries)
+
+3. staff
+- Verify list submitted by the barangay
+- verify focal request
+- monitor list of benefeciaries
+- create an activity/program for the benefeciaries (to be approved by the admin)
+- manage made program for the benefeciaries:
+    select benefeciaries
+    print program benefeciaries list 
+    monitor goods distribution
+- manage AICS benefeciaries
+- generate report (list of benefeciaries, program summary)
+
+
+1. Admin
+- Admin can create focal, staff, and barangay personnel accounts
+- Only approve the verified request of the barangay personnels from the staff such as:
+    Transistioning of benefeciary to senior citizen
+- Approve staff activity/programs such as:
+    benefit distribution
+    list of benefeciaries
+    view program status (list of benefeciaries received)
+- approve aics benefeciary
+- generate reports (all types of report)
+
+
+Notifications
+
+New Beneficiary Notifications
+
+    When focals create, barangay can be notified
+    When barangay accept, staff can be notified
+    When Staff accept, admin can be notified
+
+Birthday Notifications
+
+    When the focal endores a Birthday celebrant, the admin will be notified
+    when the admin responds, the focal will be notified
+
+Transistioning
+
+    when the focal endorse transitioning, the focal senior will be notified
+    when the focal senior accept, the barangay will be notified
+
+program
+    
+    when the staff create a program, the admin will be notified
+    when the admin accept the program, the staff will be notified
+    when the staff sends beneficiary list for program the admin will be notified
+    when the admin approve the program, the staff will be notified.
+    the barangay and focal of chosen beneficiaries will be notified
+
+
+Sample
+
+foreach($all_users as $user){
+    $user->notify(new UserNotification($this->heading, $this->message, $this->url));
+}
+
+namespace App\Livewire;
+
+use Livewire\Component;
+use Illuminate\Support\Facades\Crypt;
+use Carbon\Carbon;
+
+
+class Notification extends Component
+{
+
+    public $user;
+    public $notifications;
+
+    public function mount(){
+        $this->user = auth()->user();
+    }
+
+    public function render()
+    {
+        $unread_notifications = $this->user->unreadNotifications()->count();
+
+        $this->notifications = $this->user->notifications;
+
+        return view('livewire.notification', ['unread_notifications' => $unread_notifications, 'notifications' => $this->notifications]);
+    }
+
+    public function deleteAllNotification(){
+        $notifications = $this->user->notifications;
+        
+        foreach ($notifications as $notification){
+            $notification->delete();
+        }
+    }
+
+    public function deleteNotification($id){
+        $decrypted_id = Crypt::decrypt($id);
+        $notification = $this->user->notifications->where('id', $decrypted_id)->first();
+        $notification->delete();
+    }
+
+    public function markAsReadNotification($id){
+        $decrypted_id = Crypt::decrypt($id);
+
+        $notification = $this->user->notifications->find($decrypted_id)->first();
+        $notification->markAsRead();
+    }
+    
+}
+
+public $heading;
+    public $message;
+    public $url;
+
+    public function __construct($heading, $message, $url)
+    {
+        $this->heading = $heading;
+        $this->message = $message;
+        $this->url = $url;
+    }
+
+     public function via(object $notifiable): array
+    {
+        return ['database'];
+    }
+
+   
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'heading' => $this->heading,
+            'message' => $this->message,
+            'url' => $this->url
+        ];
+    }
